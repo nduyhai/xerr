@@ -15,6 +15,7 @@ type StructuredError struct {
 	GRPCCode codes.Code        // gRPC status code
 	HTTPCode int               // HTTP status code
 	Metadata map[string]string // Optional context (trace ID, field, etc.)
+	Cause    error             // Original error that caused this error
 }
 
 // Error implements the error interface.
@@ -59,32 +60,17 @@ func (e *StructuredError) WithMetadata(key string, value string) *StructuredErro
 	return e
 }
 
-// Wrap wraps an existing error with a structured error.
-func Wrap(err error, code string) *StructuredError {
-	if err == nil {
-		return nil
-	}
-
-	// If it's already a StructuredError, just update the code
-	if se, ok := err.(*StructuredError); ok {
-		se.Code = code
-		return se
-	}
-
-	return &StructuredError{
-		Code:     code,
-		Message:  err.Error(),
-		GRPCCode: codes.Unknown,
-		HTTPCode: 500,
-	}
-}
-
-// Is The implements the errors.Is interface for error comparison.
+// Is implements the errors.Is interface for error comparison.
 func (e *StructuredError) Is(target error) bool {
 	if se, ok := target.(*StructuredError); ok {
 		return e.Code == se.Code
 	}
 	return false
+}
+
+// Unwrap implements the errors.Unwrap interface to return the underlying cause.
+func (e *StructuredError) Unwrap() error {
+	return e.Cause
 }
 
 // NewWithHTTPAndGRPC creates a new StructuredError with the given code, message, HTTP code, and gRPC code.

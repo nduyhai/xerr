@@ -13,6 +13,9 @@ A structured error handling package for Go with seamless integration for gRPC an
 - ✅ **Error Details** - Support for gRPC error details (ErrorInfo, BadRequest, PreconditionFailure)
 - ✅ **Fluent API** - Builder pattern for creating and customizing errors
 - ✅ **Error Wrapping** - Wrap existing errors with structured information
+- ✅ **Default Error Wrapping** - Wrap errors with default error code
+- ✅ **Error Cause Tracking** - Track and retrieve the original cause of errors
+- ✅ **Error Unwrapping** - Standard Go error unwrapping support
 
 ## Installation
 
@@ -90,6 +93,22 @@ validationErr := xerr.NewStandardError(xerr.INVALID_ARGUMENT, "Validation failed
 	})
 ```
 
+### Error Cause Tracking and Unwrapping
+
+```go
+// Wrap an error with a structured error
+originalErr := errors.New("database connection failed")
+wrappedErr := xerr.Wrap(originalErr, xerr.UNAVAILABLE)
+
+// Unwrap to get the original error
+unwrappedErr := errors.Unwrap(wrappedErr) // Returns originalErr
+
+// Get the root cause of a deeply nested error using standard Go unwrapping
+deeplyNestedErr := fmt.Errorf("operation failed: %w", wrappedErr)
+rootCause := errors.Unwrap(deeplyNestedErr) // Returns wrappedErr
+rootCause = errors.Unwrap(rootCause) // Returns originalErr
+```
+
 ### HTTP Integration
 
 ```go
@@ -103,9 +122,13 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		
-		// Otherwise, wrap it
+		// Otherwise, wrap it with a specific code
 		xerr.Wrap(err, xerr.INVALID_ARGUMENT).ToHTTP(w)
 		return
+		
+		// Or wrap with default UNKNOWN code
+		// xerr.WrapDefault(err).ToHTTP(w)
+		// return
 	}
 	
 	// Process request...
@@ -134,8 +157,11 @@ func (s *server) MyGRPCMethod(ctx context.Context, req *pb.Request) (*pb.Respons
 			return nil, se.ToGRPCStatus().Err()
 		}
 		
-		// Otherwise, wrap it
+		// Otherwise, wrap it with a specific code
 		return nil, xerr.Wrap(err, xerr.INTERNAL).ToGRPCStatus().Err()
+		
+		// Or wrap with default UNKNOWN code
+		// return nil, xerr.WrapDefault(err).ToGRPCStatus().Err()
 	}
 	
 	// Process request...
