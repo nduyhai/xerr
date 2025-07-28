@@ -1,3 +1,3 @@
-module github.com/nduyhai/go-module
+module github.com/nduyhai/xerr
 
 go 1.24.1
