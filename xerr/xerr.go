@@ -79,13 +79,12 @@ func Wrap(err error, code string) *StructuredError {
 	}
 }
 
-// Is implements the errors.Is interface for error comparison.
+// Is The implements the errors.Is interface for error comparison.
 func (e *StructuredError) Is(target error) bool {
-	t, ok := target.(*StructuredError)
-	if !ok {
-		return false
+	if se, ok := target.(*StructuredError); ok {
+		return e.Code == se.Code
 	}
-	return e.Code == t.Code
+	return false
 }
 
 // NewWithHTTPAndGRPC creates a new StructuredError with the given code, message, HTTP code, and gRPC code.
