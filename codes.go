@@ -74,8 +74,7 @@ func NewStandardError(code string, message string) Error {
 	}
 
 	return &StructuredError{
-		Code:     code,
-		Message:  message,
+		reason:   NewDefaultReason(code, message),
 		GRPCCode: mapping.GRPCCode,
 		HTTPCode: mapping.HTTPCode,
 	}

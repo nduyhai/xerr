@@ -26,9 +26,9 @@ func (e *StructuredError) ToHTTP(w http.ResponseWriter) {
 
 	// Create HTTP error response
 	httpErr := HTTPError{
-		Code:     e.Code,
-		Message:  e.Message,
-		Reason:   e.Reason,
+		Code:     e.GetCode(),
+		Message:  e.GetMessage(),
+		Reason:   e.GetUserReason(),
 		Metadata: e.Metadata,
 	}
 
@@ -40,9 +40,9 @@ func (e *StructuredError) ToHTTP(w http.ResponseWriter) {
 // It returns the JSON bytes and the HTTP status code.
 func (e *StructuredError) ToHTTPJSON() ([]byte, int) {
 	httpErr := HTTPError{
-		Code:     e.Code,
-		Message:  e.Message,
-		Reason:   e.Reason,
+		Code:     e.GetCode(),
+		Message:  e.GetMessage(),
+		Reason:   e.GetUserReason(),
 		Metadata: e.Metadata,
 	}
 
@@ -58,10 +58,14 @@ func FromHTTPJSON(jsonBytes []byte, statusCode int) (Error, error) {
 		return nil, err
 	}
 
+	// Create a DefaultReason with the code and message
+	reason := NewDefaultReason(httpErr.Code, httpErr.Message)
+	if httpErr.Reason != "" {
+		reason.WithReason(httpErr.Reason)
+	}
+
 	return &StructuredError{
-		Code:     httpErr.Code,
-		Message:  httpErr.Message,
-		Reason:   httpErr.Reason,
+		reason:   reason,
 		GRPCCode: httpToGRPCCode(statusCode),
 		HTTPCode: statusCode,
 		Metadata: httpErr.Metadata,

@@ -12,15 +12,15 @@ func Wrap(err error, code string) Error {
 		return nil
 	}
 
-	// If it's already a StructuredError, just update the code
+	// If it's already a StructuredError, just update the reason with the new code
 	var se *StructuredError
 	if errors.As(err, &se) {
-		se.Code = code
+		// Create a new DefaultReason with the new code and the existing message
+		se.reason = NewDefaultReason(code, se.GetMessage())
 		return se
 	}
 	return &StructuredError{
-		Code:     code,
-		Message:  err.Error(),
+		reason:   NewDefaultReason(code, err.Error()),
 		GRPCCode: codes.Unknown,
 		HTTPCode: 500,
 		Cause:    err,

@@ -9,12 +9,12 @@ import (
 // ToGRPCStatus converts a StructuredError to a gRPC status.Status.
 // It includes error details if available.
 func (e *StructuredError) ToGRPCStatus() *status.Status {
-	st := status.New(e.GRPCCode, e.Message)
+	st := status.New(e.GRPCCode, e.GetMessage())
 
 	// If we have additional details, add them to the status
 	if len(e.Metadata) > 0 {
 		errorInfo := &errdetails.ErrorInfo{
-			Reason:   e.Code,
+			Reason:   e.GetCode(),
 			Domain:   "github.com/nduyhai/xerr",
 			Metadata: e.Metadata,
 		}
@@ -29,10 +29,11 @@ func (e *StructuredError) ToGRPCStatus() *status.Status {
 	}
 
 	// Add localized message if available
-	if e.Reason != "" {
+	userReason := e.GetUserReason()
+	if userReason != "" {
 		localizedMsg := &errdetails.LocalizedMessage{
 			Locale:  "en-US",
-			Message: e.Reason,
+			Message: userReason,
 		}
 
 		// Add localized message
@@ -50,33 +51,42 @@ func FromGRPCStatus(st *status.Status) Error {
 		return nil
 	}
 
-	e := &StructuredError{
-		Code:     "UNKNOWN", // Default code
-		Message:  st.Message(),
-		GRPCCode: st.Code(),
-		HTTPCode: grpcToHTTPCode(st.Code()),
-		Metadata: make(map[string]string),
-	}
+	// Default values
+	code := "UNKNOWN"
+	message := st.Message()
+	userReason := ""
+	metadata := make(map[string]string)
 
 	// Extract details from the status
 	for _, detail := range st.Details() {
 		switch d := detail.(type) {
 		case *errdetails.ErrorInfo:
 			// Use the reason as the error code
-			e.Code = d.Reason
+			code = d.Reason
 
 			// Copy metadata
 			for k, v := range d.Metadata {
-				e.Metadata[k] = v
+				metadata[k] = v
 			}
 
 		case *errdetails.LocalizedMessage:
-			// Use the localized message as the reason
-			e.Reason = d.Message
+			// Use the localized message as the user reason
+			userReason = d.Message
 		}
 	}
 
-	return e
+	// Create the error with the extracted information
+	reason := NewDefaultReason(code, message)
+	if userReason != "" {
+		reason.WithReason(userReason)
+	}
+
+	return &StructuredError{
+		reason:   reason,
+		GRPCCode: st.Code(),
+		HTTPCode: grpcToHTTPCode(st.Code()),
+		Metadata: metadata,
+	}
 }
 
 // ToGRPCStatusProto converts a StructuredError to a google.rpc.Status proto.

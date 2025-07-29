@@ -40,7 +40,7 @@ func (e *StructuredError) WithBadRequest(fieldViolations map[string]string) Erro
 // This is used when converting to gRPC status.
 func (e *StructuredError) GetErrorInfo() *errdetails.ErrorInfo {
 	return &errdetails.ErrorInfo{
-		Reason:   e.Code,
+		Reason:   e.GetCode(),
 		Domain:   "github.com/nduyhai/xerr",
 		Metadata: e.Metadata,
 	}

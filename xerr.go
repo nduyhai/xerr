@@ -17,14 +17,8 @@ type Error interface {
 	
 	// Core accessor methods
 	
-	// GetCode returns the error code.
-	GetCode() string
-	
-	// GetMessage returns the error message.
-	GetMessage() string
-	
-	// GetReason returns the user-facing reason.
-	GetReason() string
+	// GetReason returns the Reason interface.
+	GetReason() Reason
 	
 	// GetGRPCCode returns the gRPC status code.
 	GetGRPCCode() codes.Code
@@ -37,6 +31,17 @@ type Error interface {
 	
 	// GetCause returns the underlying cause of the error.
 	GetCause() error
+	
+	// Convenience accessor methods
+	
+	// GetCode returns the error code from the Reason.
+	GetCode() string
+	
+	// GetMessage returns the error message from the Reason.
+	GetMessage() string
+	
+	// GetUserReason returns the user-facing reason from the Reason.
+	GetUserReason() string
 	
 	// Core modifier methods
 	
@@ -65,9 +70,7 @@ type Error interface {
 // It implements the Error interface and can be converted to/from gRPC status and HTTP responses.
 // This is the concrete implementation that is returned by the factory functions.
 type StructuredError struct {
-	Code     string            // Machine-readable app error code, e.g. "INVALID_AMOUNT"
-	Message  string            // Developer-facing message
-	Reason   string            // Optional user-facing message (for UI/i18n)
+	reason   Reason            // Reason interface implementation
 	GRPCCode codes.Code        // gRPC status code
 	HTTPCode int               // HTTP status code
 	Metadata map[string]string // Optional context (trace ID, field, etc.)
@@ -76,19 +79,33 @@ type StructuredError struct {
 
 // Accessor methods for StructuredError
 
-// GetCode returns the error code.
+// GetReason returns the Reason interface.
+func (e *StructuredError) GetReason() Reason {
+	return e.reason
+}
+
+// GetCode returns the error code from the Reason.
 func (e *StructuredError) GetCode() string {
-	return e.Code
+	if e.reason == nil {
+		return ""
+	}
+	return e.reason.Code()
 }
 
-// GetMessage returns the error message.
+// GetMessage returns the error message from the Reason.
 func (e *StructuredError) GetMessage() string {
-	return e.Message
+	if e.reason == nil {
+		return ""
+	}
+	return e.reason.Message()
 }
 
-// GetReason returns the user-facing reason.
-func (e *StructuredError) GetReason() string {
-	return e.Reason
+// GetUserReason returns the user-facing reason from the Reason.
+func (e *StructuredError) GetUserReason() string {
+	if e.reason == nil {
+		return ""
+	}
+	return e.reason.Reason()
 }
 
 // GetGRPCCode returns the gRPC status code.
@@ -113,15 +130,17 @@ func (e *StructuredError) GetCause() error {
 
 // Error implements the error interface.
 func (e *StructuredError) Error() string {
-	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
+	if e.reason == nil {
+		return "unknown error"
+	}
+	return fmt.Sprintf("[%s] %s", e.reason.Code(), e.reason.Message())
 }
 
 // New creates a new Error with the given code and message.
 // It returns an Error interface that can be used with all the methods defined in the interface.
 func New(code string, message string) Error {
 	return &StructuredError{
-		Code:     code,
-		Message:  message,
+		reason:   NewDefaultReason(code, message),
 		GRPCCode: codes.Unknown,
 		HTTPCode: 500,
 	}
@@ -129,7 +148,20 @@ func New(code string, message string) Error {
 
 // WithReason adds a user-facing reason to the error.
 func (e *StructuredError) WithReason(reason string) Error {
-	e.Reason = reason
+	if defaultReason, ok := e.reason.(*DefaultReason); ok {
+		defaultReason.WithReason(reason)
+	} else {
+		// If the reason is not a DefaultReason, create a new one with the same code and message
+		newReason := NewDefaultReason(e.GetCode(), e.GetMessage()).WithReason(reason)
+		e.reason = newReason
+	}
+	return e
+}
+
+// WithCustomReason sets a custom implementation of the Reason interface.
+// This allows for more flexible error reason handling.
+func (e *StructuredError) WithCustomReason(reason Reason) Error {
+	e.reason = reason
 	return e
 }
 
@@ -157,7 +189,7 @@ func (e *StructuredError) WithMetadata(key string, value string) Error {
 // Is implements the errors.Is interface for error comparison.
 func (e *StructuredError) Is(target error) bool {
 	if se, ok := target.(*StructuredError); ok {
-		return e.Code == se.Code
+		return e.GetCode() == se.GetCode()
 	}
 	return false
 }
@@ -171,8 +203,7 @@ func (e *StructuredError) Unwrap() error {
 // It returns an Error interface that can be used with all the methods defined in the interface.
 func NewWithHTTPAndGRPC(code string, message string, httpCode int, grpcCode codes.Code) Error {
 	return &StructuredError{
-		Code:     code,
-		Message:  message,
+		reason:   NewDefaultReason(code, message),
 		GRPCCode: grpcCode,
 		HTTPCode: httpCode,
 	}
