@@ -214,6 +214,20 @@ The package provides standard error codes that align with both gRPC and HTTP sta
 
 For detailed API documentation, see the [Go package documentation](https://pkg.go.dev/github.com/nduyhai/xerr).
 
+## Sample Code
+
+The repository includes a `samples` directory with working examples for each use case:
+
+- **basic**: Basic error creation and handling
+- **standard_codes**: Using standard error codes
+- **customization**: Customizing errors with metadata and reasons
+- **wrapping**: Error wrapping and unwrapping
+- **http**: HTTP error integration
+- **grpc**: gRPC error integration
+- **details**: Error details usage (BadRequest, ErrorInfo, etc.)
+
+Each sample contains a `main.go` file that demonstrates the specific functionality.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

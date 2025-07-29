@@ -1,6 +1,7 @@
 package xerr
 
 import (
+	"errors"
 	"google.golang.org/grpc/codes"
 )
 
@@ -11,11 +12,11 @@ func Wrap(err error, code string) *StructuredError {
 	}
 
 	// If it's already a StructuredError, just update the code
-	if se, ok := err.(*StructuredError); ok {
+	var se *StructuredError
+	if errors.As(err, &se) {
 		se.Code = code
 		return se
 	}
-
 	return &StructuredError{
 		Code:     code,
 		Message:  err.Error(),
