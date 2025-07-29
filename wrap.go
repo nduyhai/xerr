@@ -6,7 +6,8 @@ import (
 )
 
 // Wrap wraps an existing error with a structured error.
-func Wrap(err error, code string) *StructuredError {
+// It returns an Error interface that can be used with all the methods defined in the interface.
+func Wrap(err error, code string) Error {
 	if err == nil {
 		return nil
 	}
@@ -27,6 +28,7 @@ func Wrap(err error, code string) *StructuredError {
 }
 
 // WrapDefault wraps an existing error with a structured error using the default UNKNOWN code.
-func WrapDefault(err error) *StructuredError {
+// It returns an Error interface that can be used with all the methods defined in the interface.
+func WrapDefault(err error) Error {
 	return Wrap(err, UNKNOWN)
 }

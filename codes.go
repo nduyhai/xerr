@@ -63,9 +63,10 @@ var StandardErrorMapping = map[string]struct {
 	CONFLICT:      {GRPCCode: codes.Aborted, HTTPCode: 409},            // HTTP 409 Conflict
 }
 
-// NewStandardError creates a new StructuredError with standard error code mapping.
+// NewStandardError creates a new Error with standard error code mapping.
 // It automatically sets the appropriate gRPC and HTTP codes based on the error code.
-func NewStandardError(code string, message string) *StructuredError {
+// It returns an Error interface that can be used with all the methods defined in the interface.
+func NewStandardError(code string, message string) Error {
 	mapping, exists := StandardErrorMapping[code]
 	if !exists {
 		// Default to UNKNOWN if the code is not recognized

@@ -12,14 +12,21 @@ func main() {
 	fmt.Println("gRPC Error Integration Example")
 	fmt.Println("============================")
 	
-	// Example 1: Convert a structured error to a gRPC status
-	fmt.Println("Example 1: Convert a structured error to a gRPC status")
-	err := xerr.NewStandardError(xerr.NOT_FOUND, "User not found")
-	err = err.WithMetadata("user_id", "12345")
-	err = err.WithReason("The requested user could not be found in the database")
-	
-	// Convert to gRPC status
-	st := err.ToGRPCStatus()
+ // Example 1: Convert a structured error to a gRPC status
+ fmt.Println("Example 1: Convert a structured error to a gRPC status")
+ err := xerr.NewStandardError(xerr.NOT_FOUND, "User not found")
+ err = err.WithMetadata("user_id", "12345")
+ err = err.WithReason("The requested user could not be found in the database")
+
+ // Type assertion to *StructuredError to access ToGRPCStatus method
+ structuredErr, ok := err.(*xerr.StructuredError)
+ if !ok {
+ 	fmt.Println("Error: Failed to convert to *StructuredError")
+ 	return
+ }
+
+ // Convert to gRPC status
+ st := structuredErr.ToGRPCStatus()
 	
 	fmt.Printf("gRPC Status Code: %d\n", st.Code())
 	fmt.Printf("gRPC Status Message: %s\n", st.Message())
@@ -32,34 +39,48 @@ func main() {
 		fmt.Printf("  Detail %d: %T - %v\n", i+1, detail, detail)
 	}
 	
-	// Example 2: Convert a gRPC status back to a structured error
-	fmt.Println("\nExample 2: Convert a gRPC status back to a structured error")
-	recoveredErr := xerr.FromGRPCStatus(st)
+ // Example 2: Convert a gRPC status back to a structured error
+ fmt.Println("\nExample 2: Convert a gRPC status back to a structured error")
+ recoveredErr := xerr.FromGRPCStatus(st)
+
+ // Type assertion to *StructuredError to access fields
+ recoveredStructErr, ok := recoveredErr.(*xerr.StructuredError)
+ if !ok {
+ 	fmt.Println("Error: Failed to convert to *StructuredError")
+ 	return
+ }
+
+ fmt.Printf("Recovered Error Code: %s\n", recoveredStructErr.GetCode())
+ fmt.Printf("Recovered Error Message: %s\n", recoveredStructErr.GetMessage())
+ fmt.Printf("Recovered Error Reason: %s\n", recoveredStructErr.GetReason())
+ fmt.Printf("Recovered Error HTTP Code: %d\n", recoveredStructErr.GetHTTPCode())
+ fmt.Printf("Recovered Error gRPC Code: %d\n", recoveredStructErr.GetGRPCCode())
+
+ fmt.Println("Recovered Error Metadata:")
+ for k, v := range recoveredStructErr.GetMetadata() {
+ 	fmt.Printf("  %s: %s\n", k, v)
+ }
 	
-	fmt.Printf("Recovered Error Code: %s\n", recoveredErr.Code)
-	fmt.Printf("Recovered Error Message: %s\n", recoveredErr.Message)
-	fmt.Printf("Recovered Error Reason: %s\n", recoveredErr.Reason)
-	fmt.Printf("Recovered Error HTTP Code: %d\n", recoveredErr.HTTPCode)
-	fmt.Printf("Recovered Error gRPC Code: %d\n", recoveredErr.GRPCCode)
-	
-	fmt.Println("Recovered Error Metadata:")
-	for k, v := range recoveredErr.Metadata {
-		fmt.Printf("  %s: %s\n", k, v)
-	}
-	
-	// Example 3: Create a gRPC status and convert it to a structured error
-	fmt.Println("\nExample 3: Create a gRPC status and convert it to a structured error")
-	
-	// Create a gRPC status directly
-	grpcStatus := status.New(codes.FailedPrecondition, "Precondition failed")
-	
-	// Convert to structured error
-	convertedErr := xerr.FromGRPCStatus(grpcStatus)
-	
-	fmt.Printf("Converted Error Code: %s\n", convertedErr.Code)
-	fmt.Printf("Converted Error Message: %s\n", convertedErr.Message)
-	fmt.Printf("Converted Error HTTP Code: %d\n", convertedErr.HTTPCode)
-	fmt.Printf("Converted Error gRPC Code: %d\n", convertedErr.GRPCCode)
+ // Example 3: Create a gRPC status and convert it to a structured error
+ fmt.Println("\nExample 3: Create a gRPC status and convert it to a structured error")
+
+ // Create a gRPC status directly
+ grpcStatus := status.New(codes.FailedPrecondition, "Precondition failed")
+
+ // Convert to structured error
+ convertedErr := xerr.FromGRPCStatus(grpcStatus)
+
+ // Type assertion to *StructuredError to access fields
+ convertedStructErr, ok := convertedErr.(*xerr.StructuredError)
+ if !ok {
+ 	fmt.Println("Error: Failed to convert to *StructuredError")
+ 	return
+ }
+
+ fmt.Printf("Converted Error Code: %s\n", convertedStructErr.GetCode())
+ fmt.Printf("Converted Error Message: %s\n", convertedStructErr.GetMessage())
+ fmt.Printf("Converted Error HTTP Code: %d\n", convertedStructErr.GetHTTPCode())
+ fmt.Printf("Converted Error gRPC Code: %d\n", convertedStructErr.GetGRPCCode())
 	
 	// Example 4: Demonstrate server-side error handling in gRPC
 	fmt.Println("\nExample 4: Demonstrate server-side error handling in gRPC")
@@ -83,8 +104,14 @@ func simulateGRPCMethod(userID string) (interface{}, error) {
 	err = err.WithMetadata("user_id", userID)
 	err = err.WithReason("The requested user could not be found in the database")
 	
+	// Type assertion to *StructuredError to access ToGRPCStatus method
+	structuredErr, ok := err.(*xerr.StructuredError)
+	if !ok {
+		return nil, fmt.Errorf("failed to convert to *StructuredError")
+	}
+	
 	// Convert to gRPC status and return as error
-	return nil, err.ToGRPCStatus().Err()
+	return nil, structuredErr.ToGRPCStatus().Err()
 }
 
 // handleGRPCError simulates handling a gRPC error on the client side
@@ -101,25 +128,32 @@ func handleGRPCError(err error) {
 		return
 	}
 	
-	// Convert to structured error
-	se := xerr.FromGRPCStatus(st)
-	
-	fmt.Printf("Client received structured error:\n")
-	fmt.Printf("  Code: %s\n", se.Code)
-	fmt.Printf("  Message: %s\n", se.Message)
-	fmt.Printf("  Reason: %s\n", se.Reason)
-	fmt.Printf("  HTTP Code: %d\n", se.HTTPCode)
-	fmt.Printf("  gRPC Code: %d\n", se.GRPCCode)
-	
-	// Handle based on error code
-	switch se.Code {
-	case xerr.NOT_FOUND:
-		fmt.Println("  Handling not found error: Show 'not found' UI")
-	case xerr.PERMISSION_DENIED:
-		fmt.Println("  Handling permission denied: Prompt for authentication")
-	case xerr.INVALID_ARGUMENT:
-		fmt.Println("  Handling invalid argument: Show validation errors")
-	default:
-		fmt.Println("  Handling generic error: Show error message")
-	}
+ // Convert to structured error
+ se := xerr.FromGRPCStatus(st)
+
+ // Type assertion to *StructuredError to access fields
+ seStruct, ok := se.(*xerr.StructuredError)
+ if !ok {
+ 	fmt.Println("Error: Failed to convert to *StructuredError")
+ 	return
+ }
+
+ fmt.Printf("Client received structured error:\n")
+ fmt.Printf("  Code: %s\n", seStruct.GetCode())
+ fmt.Printf("  Message: %s\n", seStruct.GetMessage())
+ fmt.Printf("  Reason: %s\n", seStruct.GetReason())
+ fmt.Printf("  HTTP Code: %d\n", seStruct.GetHTTPCode())
+ fmt.Printf("  gRPC Code: %d\n", seStruct.GetGRPCCode())
+
+ // Handle based on error code
+ switch seStruct.GetCode() {
+ case xerr.NOT_FOUND:
+ 	fmt.Println("  Handling not found error: Show 'not found' UI")
+ case xerr.PERMISSION_DENIED:
+ 	fmt.Println("  Handling permission denied: Prompt for authentication")
+ case xerr.INVALID_ARGUMENT:
+ 	fmt.Println("  Handling invalid argument: Show validation errors")
+ default:
+ 	fmt.Println("  Handling generic error: Show error message")
+ }
 }

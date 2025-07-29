@@ -50,8 +50,9 @@ func (e *StructuredError) ToHTTPJSON() ([]byte, int) {
 	return jsonBytes, e.HTTPCode
 }
 
-// FromHTTPJSON converts an HTTP JSON error response to a StructuredError.
-func FromHTTPJSON(jsonBytes []byte, statusCode int) (*StructuredError, error) {
+// FromHTTPJSON converts an HTTP JSON error response to an Error.
+// It returns an Error interface that can be used with all the methods defined in the interface.
+func FromHTTPJSON(jsonBytes []byte, statusCode int) (Error, error) {
 	var httpErr HTTPError
 	if err := json.Unmarshal(jsonBytes, &httpErr); err != nil {
 		return nil, err
@@ -106,18 +107,35 @@ func httpToGRPCCode(httpCode int) codes.Code {
 
 // WriteHTTPError writes a structured error to an HTTP response.
 // This is a convenience function for creating and writing an error in one step.
+// It creates an Error using the interface-based approach and writes it to the response.
 func WriteHTTPError(w http.ResponseWriter, code string, message string, httpCode int) {
-	err := &StructuredError{
-		Code:     code,
-		Message:  message,
-		HTTPCode: httpCode,
+	err := NewWithHTTPAndGRPC(code, message, httpCode, httpToGRPCCode(httpCode))
+	if se, ok := err.(*StructuredError); ok {
+		se.ToHTTP(w)
+	} else {
+		// Fallback if not a StructuredError (should never happen)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(httpCode)
+		json.NewEncoder(w).Encode(HTTPError{
+			Code:    code,
+			Message: message,
+		})
 	}
-	err.ToHTTP(w)
 }
 
 // WriteStandardHTTPError writes a standard error to an HTTP response.
 // It uses the standard error code mapping to determine the appropriate HTTP status code.
 func WriteStandardHTTPError(w http.ResponseWriter, code string, message string) {
 	err := NewStandardError(code, message)
-	err.ToHTTP(w)
+	if se, ok := err.(*StructuredError); ok {
+		se.ToHTTP(w)
+	} else {
+		// Fallback if not a StructuredError (should never happen)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		json.NewEncoder(w).Encode(HTTPError{
+			Code:    "INTERNAL",
+			Message: "Failed to convert error to HTTP response",
+		})
+	}
 }

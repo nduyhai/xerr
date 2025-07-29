@@ -42,9 +42,10 @@ func (e *StructuredError) ToGRPCStatus() *status.Status {
 	return st
 }
 
-// FromGRPCStatus converts a gRPC status.Status to a StructuredError.
-// It extracts error details if available.
-func FromGRPCStatus(st *status.Status) *StructuredError {
+// FromGRPCStatus converts a gRPC status.Status to an Error.
+// It extracts error details if available and returns an Error interface
+// that can be used with all the methods defined in the interface.
+func FromGRPCStatus(st *status.Status) Error {
 	if st == nil {
 		return nil
 	}
@@ -83,8 +84,9 @@ func (e *StructuredError) ToGRPCStatusProto() *status.Status {
 	return e.ToGRPCStatus()
 }
 
-// FromGRPCStatusProto converts a google.rpc.Status proto to a StructuredError.
-func FromGRPCStatusProto(st *status.Status) *StructuredError {
+// FromGRPCStatusProto converts a google.rpc.Status proto to an Error.
+// It returns an Error interface that can be used with all the methods defined in the interface.
+func FromGRPCStatusProto(st *status.Status) Error {
 	return FromGRPCStatus(st)
 }
 

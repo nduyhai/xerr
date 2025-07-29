@@ -16,10 +16,10 @@ func main() {
 	fmt.Println("Simple error:", err)
 	
 	// Access the error's properties
-	fmt.Printf("Error code: %s\n", err.Code)
-	fmt.Printf("Error message: %s\n", err.Message)
-	fmt.Printf("Default HTTP code: %d\n", err.HTTPCode)
-	fmt.Printf("Default gRPC code: %d\n", err.GRPCCode)
+	fmt.Printf("Error code: %s\n", err.GetCode())
+	fmt.Printf("Error message: %s\n", err.GetMessage())
+	fmt.Printf("Default HTTP code: %d\n", err.GetHTTPCode())
+	fmt.Printf("Default gRPC code: %d\n", err.GetGRPCCode())
 	
 	// Create an error with custom HTTP and gRPC codes
 	customErr := xerr.NewWithHTTPAndGRPC(
@@ -29,8 +29,8 @@ func main() {
 		8,   // gRPC ResourceExhausted
 	)
 	fmt.Println("\nCustom error with specific codes:", customErr)
-	fmt.Printf("HTTP code: %d\n", customErr.HTTPCode)
-	fmt.Printf("gRPC code: %d\n", customErr.GRPCCode)
+	fmt.Printf("HTTP code: %d\n", customErr.GetHTTPCode())
+	fmt.Printf("gRPC code: %d\n", customErr.GetGRPCCode())
 	
 	// Demonstrate error comparison using errors.Is
 	fmt.Println("\nError comparison:")

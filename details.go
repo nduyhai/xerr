@@ -6,7 +6,7 @@ import (
 
 // WithErrorInfo adds ErrorInfo detail to the structured error.
 // ErrorInfo is a standard gRPC error detail that provides structured error information.
-func (e *StructuredError) WithErrorInfo(domain string, metadata map[string]string) *StructuredError {
+func (e *StructuredError) WithErrorInfo(domain string, metadata map[string]string) Error {
 	// Store metadata in the error
 	if metadata != nil {
 		if e.Metadata == nil {
@@ -22,7 +22,7 @@ func (e *StructuredError) WithErrorInfo(domain string, metadata map[string]strin
 
 // WithBadRequest adds field violations to the error.
 // This is useful for validation errors where multiple fields have issues.
-func (e *StructuredError) WithBadRequest(fieldViolations map[string]string) *StructuredError {
+func (e *StructuredError) WithBadRequest(fieldViolations map[string]string) Error {
 	// Store field violations in metadata with a special prefix
 	if fieldViolations != nil {
 		if e.Metadata == nil {
@@ -77,7 +77,7 @@ func (e *StructuredError) GetBadRequest() *errdetails.BadRequest {
 
 // WithPreconditionFailure adds precondition failures to the error.
 // This is useful for errors where certain preconditions were not met.
-func (e *StructuredError) WithPreconditionFailure(violations map[string]string) *StructuredError {
+func (e *StructuredError) WithPreconditionFailure(violations map[string]string) Error {
 	// Store precondition violations in metadata with a special prefix
 	if violations != nil {
 		if e.Metadata == nil {
