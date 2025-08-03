@@ -2,6 +2,7 @@ package xerr
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"google.golang.org/grpc/codes"
@@ -114,30 +115,23 @@ func httpToGRPCCode(httpCode int) codes.Code {
 // It creates an Error using the interface-based approach and writes it to the response.
 func WriteHTTPError(w http.ResponseWriter, code string, message string, httpCode int) {
 	err := NewWithHTTPAndGRPC(code, message, httpCode, httpToGRPCCode(httpCode))
-	if se, ok := err.(*StructuredError); ok {
+	var se *StructuredError
+	if errors.As(err, &se) {
 		se.ToHTTP(w)
-	} else {
-		// Fallback if not a StructuredError (should never happen)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(httpCode)
-		json.NewEncoder(w).Encode(HTTPError{
-			Code:    code,
-			Message: message,
-		})
 	}
 }
 
 // WriteStandardHTTPError writes a standard error to an HTTP response.
 // It uses the standard error code mapping to determine the appropriate HTTP status code.
 func WriteStandardHTTPError(w http.ResponseWriter, code string, message string) {
-	err := NewStandardError(code, message)
+	err := New(code, message)
 	if se, ok := err.(*StructuredError); ok {
 		se.ToHTTP(w)
 	} else {
 		// Fallback if not a StructuredError (should never happen)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(500)
-		json.NewEncoder(w).Encode(HTTPError{
+		_ = json.NewEncoder(w).Encode(HTTPError{
 			Code:    "INTERNAL",
 			Message: "Failed to convert error to HTTP response",
 		})

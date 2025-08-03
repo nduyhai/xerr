@@ -5,22 +5,21 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-// Wrap wraps an existing error with a structured error.
+// WrapWithReason wraps an existing error with a structured error using the provided Reason.
 // It returns an Error interface that can be used with all the methods defined in the interface.
-func Wrap(err error, code string) Error {
+func WrapWithReason(err error, reason Reason) Error {
 	if err == nil {
 		return nil
 	}
 
-	// If it's already a StructuredError, just update the reason with the new code
+	// If it's already a StructuredError, just update the reason
 	var se *StructuredError
 	if errors.As(err, &se) {
-		// Create a new DefaultReason with the new code and the existing message
-		se.reason = NewDefaultReason(code, se.GetMessage())
+		se.reason = reason
 		return se
 	}
 	return &StructuredError{
-		reason:   NewDefaultReason(code, err.Error()),
+		reason:   reason,
 		GRPCCode: codes.Unknown,
 		HTTPCode: 500,
 		Cause:    err,
@@ -30,5 +29,9 @@ func Wrap(err error, code string) Error {
 // WrapDefault wraps an existing error with a structured error using the default UNKNOWN code.
 // It returns an Error interface that can be used with all the methods defined in the interface.
 func WrapDefault(err error) Error {
-	return Wrap(err, UNKNOWN)
+	if err == nil {
+		return nil
+	}
+	reason := NewDefaultReason("UNKNOWN", err.Error())
+	return WrapWithReason(err, reason)
 }
