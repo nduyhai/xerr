@@ -14,54 +14,54 @@ import (
 type Error interface {
 	// Error returns the error message.
 	error
-	
+
 	// Core accessor methods
-	
+
 	// GetReason returns the Reason interface.
 	GetReason() Reason
-	
+
 	// GetGRPCCode returns the gRPC status code.
 	GetGRPCCode() codes.Code
-	
+
 	// GetHTTPCode returns the HTTP status code.
 	GetHTTPCode() int
-	
+
 	// GetMetadata returns the error metadata.
 	GetMetadata() map[string]string
-	
+
 	// GetCause returns the underlying cause of the error.
 	GetCause() error
-	
+
 	// Convenience accessor methods
-	
+
 	// GetCode returns the error code from the Reason.
 	GetCode() string
-	
+
 	// GetMessage returns the error message from the Reason.
 	GetMessage() string
-	
+
 	// GetUserReason returns the user-facing reason from the Reason.
 	GetUserReason() string
-	
+
 	// Core modifier methods
-	
+
 	// WithReason adds a user-facing reason to the error.
 	WithReason(reason string) Error
-	
+
 	// WithGRPCCode sets the gRPC status code.
 	WithGRPCCode(code codes.Code) Error
-	
+
 	// WithHTTPCode sets the HTTP status code.
 	WithHTTPCode(code int) Error
-	
+
 	// WithMetadata adds metadata to the error.
 	WithMetadata(key string, value string) Error
-	
+
 	// Standard error interface methods
-	
+
 	// Is implements the errors.Is interface for error comparison.
 	Is(target error) bool
-	
+
 	// Unwrap implements the errors.Unwrap interface to return the underlying cause.
 	Unwrap() error
 }
@@ -74,6 +74,7 @@ type StructuredError struct {
 	GRPCCode codes.Code        // gRPC status code
 	HTTPCode int               // HTTP status code
 	Metadata map[string]string // Optional context (trace ID, field, etc.)
+	Domain   string            // Domain for gRPC ErrorInfo
 	Cause    error             // Original error that caused this error
 }
 

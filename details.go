@@ -7,7 +7,8 @@ import (
 // WithErrorInfo adds ErrorInfo detail to the structured error.
 // ErrorInfo is a standard gRPC error detail that provides structured error information.
 func (e *StructuredError) WithErrorInfo(domain string, metadata map[string]string) Error {
-	// Store metadata in the error
+	// Store domain and metadata in the error
+	e.Domain = domain
 	if metadata != nil {
 		if e.Metadata == nil {
 			e.Metadata = make(map[string]string)
@@ -39,9 +40,13 @@ func (e *StructuredError) WithBadRequest(fieldViolations map[string]string) Erro
 // GetErrorInfo extracts ErrorInfo from the structured error.
 // This is used when converting to gRPC status.
 func (e *StructuredError) GetErrorInfo() *errdetails.ErrorInfo {
+	domain := e.Domain
+	if domain == "" {
+		domain = "github.com/nduyhai/xerr"
+	}
 	return &errdetails.ErrorInfo{
 		Reason:   e.GetCode(),
-		Domain:   "github.com/nduyhai/xerr",
+		Domain:   domain,
 		Metadata: e.Metadata,
 	}
 }

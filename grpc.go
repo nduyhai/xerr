@@ -12,10 +12,14 @@ func (e *StructuredError) ToGRPCStatus() *status.Status {
 	st := status.New(e.GRPCCode, e.GetMessage())
 
 	// If we have additional details, add them to the status
-	if len(e.Metadata) > 0 {
+	if len(e.Metadata) > 0 || e.Domain != "" {
+		domain := e.Domain
+		if domain == "" {
+			domain = "github.com/nduyhai/xerr"
+		}
 		errorInfo := &errdetails.ErrorInfo{
 			Reason:   e.GetCode(),
-			Domain:   "github.com/nduyhai/xerr",
+			Domain:   domain,
 			Metadata: e.Metadata,
 		}
 
@@ -55,6 +59,7 @@ func FromGRPCStatus(st *status.Status) Error {
 	code := "UNKNOWN"
 	message := st.Message()
 	userReason := ""
+	domain := ""
 	metadata := make(map[string]string)
 
 	// Extract details from the status
@@ -63,6 +68,7 @@ func FromGRPCStatus(st *status.Status) Error {
 		case *errdetails.ErrorInfo:
 			// Use the reason as the error code
 			code = d.Reason
+			domain = d.Domain
 
 			// Copy metadata
 			for k, v := range d.Metadata {
@@ -86,6 +92,7 @@ func FromGRPCStatus(st *status.Status) Error {
 		GRPCCode: st.Code(),
 		HTTPCode: grpcToHTTPCode(st.Code()),
 		Metadata: metadata,
+		Domain:   domain,
 	}
 }
 
