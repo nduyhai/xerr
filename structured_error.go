@@ -80,11 +80,7 @@ func (e *StructuredError) Error() string {
 // New creates a new Error with the given code and message.
 // It returns an Error interface that can be used with all the methods defined in the interface.
 func New(code string, message string) Error {
-	return &StructuredError{
-		reason:   NewDefaultReason(code, message),
-		GRPCCode: codes.Unknown,
-		HTTPCode: 500,
-	}
+	return NewWithHTTPAndGRPC(code, message, 500, codes.Unknown)
 }
 
 // WithReason adds a user-facing reason to the error.
