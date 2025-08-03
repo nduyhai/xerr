@@ -96,17 +96,6 @@ func FromGRPCStatus(st *status.Status) Error {
 	}
 }
 
-// ToGRPCStatusProto converts a StructuredError to a google.rpc.Status proto.
-func (e *StructuredError) ToGRPCStatusProto() *status.Status {
-	return e.ToGRPCStatus()
-}
-
-// FromGRPCStatusProto converts a google.rpc.Status proto to an Error.
-// It returns an Error interface that can be used with all the methods defined in the interface.
-func FromGRPCStatusProto(st *status.Status) Error {
-	return FromGRPCStatus(st)
-}
-
 // grpcToHTTPCode maps gRPC status codes to HTTP status codes.
 func grpcToHTTPCode(code codes.Code) int {
 	switch code {
