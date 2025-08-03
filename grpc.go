@@ -2,7 +2,7 @@ package xerr
 
 import (
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
-	"google.golang.org/grpc/codes"
+	_ "google.golang.org/grpc/codes" // Used for GRPCCode field type (codes.Code)
 	"google.golang.org/grpc/status"
 )
 
@@ -90,50 +90,9 @@ func FromGRPCStatus(st *status.Status) Error {
 	return &StructuredError{
 		reason:   reason,
 		GRPCCode: st.Code(),
-		HTTPCode: grpcToHTTPCode(st.Code()),
+		HTTPCode: DefaultConverter.GRPCToHTTP(st.Code()),
 		Metadata: metadata,
 		Domain:   domain,
 	}
 }
 
-// grpcToHTTPCode maps gRPC status codes to HTTP status codes.
-func grpcToHTTPCode(code codes.Code) int {
-	switch code {
-	case codes.OK:
-		return 200
-	case codes.Canceled:
-		return 499
-	case codes.Unknown:
-		return 500
-	case codes.InvalidArgument:
-		return 400
-	case codes.DeadlineExceeded:
-		return 504
-	case codes.NotFound:
-		return 404
-	case codes.AlreadyExists:
-		return 409
-	case codes.PermissionDenied:
-		return 403
-	case codes.ResourceExhausted:
-		return 429
-	case codes.FailedPrecondition:
-		return 400
-	case codes.Aborted:
-		return 409
-	case codes.OutOfRange:
-		return 400
-	case codes.Unimplemented:
-		return 501
-	case codes.Internal:
-		return 500
-	case codes.Unavailable:
-		return 503
-	case codes.DataLoss:
-		return 500
-	case codes.Unauthenticated:
-		return 401
-	default:
-		return 500
-	}
-}

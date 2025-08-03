@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-
-	"google.golang.org/grpc/codes"
 )
 
 // HTTPError represents the JSON structure for HTTP error responses.
@@ -67,54 +65,18 @@ func FromHTTPJSON(jsonBytes []byte, statusCode int) (Error, error) {
 
 	return &StructuredError{
 		reason:   reason,
-		GRPCCode: httpToGRPCCode(statusCode),
+		GRPCCode: DefaultConverter.HTTPToGRPC(statusCode),
 		HTTPCode: statusCode,
 		Metadata: httpErr.Metadata,
 	}, nil
 }
 
-// httpToGRPCCode maps HTTP status codes to gRPC status codes.
-func httpToGRPCCode(httpCode int) codes.Code {
-	switch {
-	case httpCode >= 200 && httpCode < 300:
-		return codes.OK
-	case httpCode == 400:
-		return codes.InvalidArgument
-	case httpCode == 401:
-		return codes.Unauthenticated
-	case httpCode == 403:
-		return codes.PermissionDenied
-	case httpCode == 404:
-		return codes.NotFound
-	case httpCode == 409:
-		return codes.Aborted
-	case httpCode == 422:
-		return codes.FailedPrecondition
-	case httpCode == 429:
-		return codes.ResourceExhausted
-	case httpCode == 499:
-		return codes.Canceled
-	case httpCode == 500:
-		return codes.Internal
-	case httpCode == 501:
-		return codes.Unimplemented
-	case httpCode == 503:
-		return codes.Unavailable
-	case httpCode == 504:
-		return codes.DeadlineExceeded
-	default:
-		if httpCode >= 400 && httpCode < 500 {
-			return codes.InvalidArgument
-		}
-		return codes.Unknown
-	}
-}
 
 // WriteHTTPError writes a structured error to an HTTP response.
 // This is a convenience function for creating and writing an error in one step.
 // It creates an Error using the interface-based approach and writes it to the response.
 func WriteHTTPError(w http.ResponseWriter, code string, message string, httpCode int) {
-	err := NewWithHTTPAndGRPC(code, message, httpCode, httpToGRPCCode(httpCode))
+	err := NewWithHTTPAndGRPC(code, message, httpCode, DefaultConverter.HTTPToGRPC(httpCode))
 	var se *StructuredError
 	if errors.As(err, &se) {
 		se.ToHTTP(w)
